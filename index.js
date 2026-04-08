@@ -877,14 +877,111 @@ function loadImageFromFile(file) {
 /**
  * 下载当前画布为 PNG 图片
  */
+/**
+ * 下载当前画布为 PNG 图片（包含底部的色号统计表）
+ */
 function downloadCanvas() {
     if (!originalImage) { setInfo("无图片", true); return; }
+
+    // 1. 获取当前网格和统计数据
+    const grid = getCurrentGrid();
+    if (!grid.length) {
+        setInfo("无法获取网格数据", true);
+        return;
+    }
+
+    const cols = currentCols, rows = currentRows;
+    const countMap = new Map();
+    for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+            const id = grid[row][col];
+            countMap.set(id, (countMap.get(id) || 0) + 1);
+        }
+    }
+    const stats = Array.from(countMap.entries())
+        .map(([id, count]) => ({ id, count, hex: getColorInfoFromId(id).hex }))
+        .sort((a, b) => a.id.localeCompare(b.id));
+
+    if (stats.length === 0) {
+        setInfo("无统计数据", true);
+        return;
+    }
+
+    // 2. 创建离屏 canvas
+    const originalCanvas = outputCanvas;
+    const originalWidth = originalCanvas.width;
+    const originalHeight = originalCanvas.height;
+
+    // 统计表格的配置
+    const statsPadding = 20;          // 内边距
+    const rowHeight = 32;             // 每行高度
+    const colWidth = 120;             // 每列宽度（色块+色号+数量）
+    const colsPerRow = 6;             // 每行显示多少个色号（可自行调整）
+    const statsRows = Math.ceil(stats.length / colsPerRow);
+    const statsTableHeight = statsPadding * 2 + statsRows * rowHeight;
+
+    // 创建离屏 canvas
+    const offCanvas = document.createElement('canvas');
+    offCanvas.width = originalWidth;
+    offCanvas.height = originalHeight + statsTableHeight;
+    const ctx = offCanvas.getContext('2d');
+
+    // 绘制原画布内容
+    ctx.drawImage(originalCanvas, 0, 0);
+
+    // 绘制统计表格背景
+    ctx.fillStyle = "#fefce8";
+    ctx.fillRect(0, originalHeight, offCanvas.width, statsTableHeight);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(10, originalHeight + statsPadding - 5, offCanvas.width - 20, statsTableHeight - statsPadding * 2 + 10);
+    ctx.strokeStyle = "#cbd5e1";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(10, originalHeight + statsPadding - 5, offCanvas.width - 20, statsTableHeight - statsPadding * 2 + 10);
+
+    // 绘制标题
+    ctx.font = "bold 16px system-ui";
+    ctx.fillStyle = "#1e293b";
+    ctx.fillText("📊 拼豆色号用量统计", 20, originalHeight + statsPadding + 8);
+
+    // 绘制表头（可选）
+    ctx.font = "12px monospace";
+    ctx.fillStyle = "#4a627a";
+    const startY = originalHeight + statsPadding + 32;
+    for (let i = 0; i < colsPerRow; i++) {
+        const x = 20 + i * colWidth;
+    }
+
+    // 绘制每个色号统计
+    ctx.font = "12px monospace";
+    for (let i = 0; i < stats.length; i++) {
+        const stat = stats[i];
+        const colIdx = i % colsPerRow;
+        const rowIdx = Math.floor(i / colsPerRow);
+        const x = 20 + colIdx * colWidth;
+        const y = startY + rowIdx * rowHeight;
+
+        // 绘制色块小圆点
+        ctx.fillStyle = stat.hex;
+        ctx.fillRect(x, y - 12, 20, 20);
+        ctx.strokeStyle = "#aaa";
+        ctx.strokeRect(x, y - 12, 20, 20);
+
+        // 色号
+        ctx.fillStyle = "#1e293b";
+        ctx.fillText(stat.id, x + 28, y);
+
+        // 数量
+        ctx.fillStyle = "#3b82f6";
+        ctx.fillText(`${stat.count} 个`, x + 80, y);
+    }
+
+    // 3. 下载
     const link = document.createElement('a');
     const ts = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-    link.download = `pixelart_${currentCols}x${currentRows}_${ts}.png`;
-    link.href = outputCanvas.toDataURL('image/png');
+    link.download = `pixelart_${currentCols}x${currentRows}_stats_${ts}.png`;
+    link.href = offCanvas.toDataURL('image/png');
     link.click();
-    setInfo("下载成功", false);
+    setInfo("下载成功（含统计信息）", false);
 }
 
 /**
