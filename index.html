@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>xzh拼豆自用 | 光标弹窗选色 | 自适应位置+可拖动+搜索预览+辅助网格</title>
+    <link rel="stylesheet" href="index.css">
+</head>
+
+<body>
+    <script src="index.js"></script> 
+    <div class="card">
+        <h1>🧩 拼豆像素画 · 光标弹窗选色增强版</h1>
+        <div class="sub">
+            上传图片 → 调整行列/缩放 → 点击「自定义编辑」→ 单击/Shift多选像素块 →
+            光标下方弹窗（可拖动/搜索/悬浮预览/撤销）| 每5格黑色辅助线
+        </div>
+
+        <!-- 上传区 -->
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">🎨</div>
+            <div>点击或拖拽图片 (JPG/PNG/WebP)</div>
+            <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/bmp" style="display: none;">
+            <button class="upload-btn" id="triggerUpload">📁 选择图片</button>
+        </div>
+
+        <!-- 控制栏（移除了放大编辑按钮） -->
+        <div class="control-bar">
+            <div class="slider-group">
+                <label>📐 列数 <span id="colBadge">24</span></label>
+                <input type="range" id="gridColsSlider" min="10" max="100" step="1" value="24">
+                <div class="number-input"><input type="number" id="colNumber" min="10" max="100" step="1" value="24">
+                </div>
+            </div>
+            <div class="slider-group">
+                <label>📏 行数 <span id="rowBadge">24</span></label>
+                <input type="range" id="gridRowsSlider" min="10" max="100" step="1" value="24">
+                <div class="number-input"><input type="number" id="rowNumber" min="10" max="100" step="1" value="24">
+                </div>
+            </div>
+            <div class="pixel-total" id="totalPixelBadge">🧊 总块数: 576</div>
+            <div class="zoom-control">
+                <span>🔍 显示缩放</span>
+                <input type="range" id="zoomSlider" min="1.0" max="3.0" step="0.05" value="1.0">
+                <span id="zoomValue">1.0</span>
+            </div>
+
+            <div class="info-text" id="infoMsg">
+                💡 编辑模式：单击/Shift多选 → 弹窗选色（可拖动/搜索/悬浮预览/撤销）
+            </div>
+            <button id="resetBtn" style="background:#334155;">🔄 清空重置</button>
+            <button id="editModeBtn" class="edit-mode">✏️ 自定义编辑</button>
+            <button id="downloadBtn">⬇️ 下载PNG</button>
+        </div>
+        <div class="suggest-area"
+            style="background:#eef2ff; border-radius:40px; padding:5px 16px; display: flex; align-items: center; gap: 12px;">
+            <span>💡 建议网格：</span>
+            <span id="suggestCols">-</span> 列 × <span id="suggestRows">-</span> 行
+            <button id="applySuggestBtn" style="background:#3b82f6; padding:4px 12px; font-size:0.8rem;">应用建议</button>
+        </div>
+        <!-- 画布区域 -->
+        <div class="canvas-wrapper">
+            <canvas id="outputCanvas" width="600" height="400"></canvas>
+
+            <!-- 统计区域 -->
+            <div id="colorStatsArea" class="color-stats" style="display: none;">
+                <div class="stats-title">📊 拼豆色号用量统计</div>
+                <div id="statsGrid" class="stats-grid"></div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
