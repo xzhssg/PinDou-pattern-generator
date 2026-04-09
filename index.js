@@ -179,6 +179,11 @@ let previewOverrides = new Map();    // 临时预览覆盖（悬浮选色时）
 let currentColorPickerPanel = null;  // 当前打开的选色板 DOM 元素
 let externalClickHandler = null;     // 全局点击关闭面板的处理器
 let dragData = { isDragging: false, startX: 0, startY: 0, startLeft: 0, startTop: 0 };
+let recentColors = [];          // 存储最近使用的颜色对象，最多8个
+const MAX_RECENT = 8;
+let aspectRatioLocked = false;      // 是否锁定宽高比
+let currentAspectRatio = 1;         // 当前锁定的宽高比（列数/行数）
+let lockedAspectRatio = 1;         // 锁定时记录的自选比例（列数/行数）
 
 /**
  * 显示提示信息
@@ -484,6 +489,16 @@ function applyReplaceSelectedWithColor(colorId) {
     }
     drawPixelArt(outputCanvas, selectedCells, displayZoom);
     setInfo(`✅ 已将 ${selectedCells.size} 个像素块替换为 ${colorId}`);
+
+    //最近使用色号逻辑
+    const usedColor = colorPaletteWithRgb.find(c => c.id === colorId);
+    if (usedColor) {
+        // 移除已存在的相同颜色（保证唯一且最新在前）
+        recentColors = recentColors.filter(c => c.id !== colorId);
+        recentColors.unshift(usedColor);
+        if (recentColors.length > MAX_RECENT) recentColors.pop();
+    }
+
     selectedCells.clear();
     closeColorPickerPanel();
     return true;
@@ -660,37 +675,13 @@ function showColorPickerAtCursor(event) {
     function renderColors(filter = '') {
         colorContainer.innerHTML = '';
         const lowerFilter = filter.toLowerCase().trim();
-        // 如果没有搜索词，显示全部
-        if (lowerFilter === null) {
-            const filtered = [...colorPaletteWithRgb].sort((a, b) => a.id.localeCompare(b.id));
-            for (let color of filtered) {
-                // ... 创建元素代码不变 ...
-            }
-            return;
-        }
-        // 有搜索词：匹配色号ID 或 色系类别（支持中英文）
-        let mappedZh = null;
-        if (enToZhColorMap[lowerFilter]) {
-            mappedZh = enToZhColorMap[lowerFilter];
-        }
-
-        const filtered = colorPaletteWithRgb.filter(c => {
-            const idMatch = c.id.toLowerCase().includes(lowerFilter);
-            const categoryMatch = c.category.toLowerCase().includes(lowerFilter);
-            // 如果映射成功，检查色系是否精确匹配映射后的中文
-            const mappedMatch = mappedZh ? c.category === mappedZh : false;
-            return idMatch || categoryMatch || mappedMatch;
-        }).sort((a, b) => a.id.localeCompare(b.id));
-
-        for (let color of filtered) {
-            // 创建每个颜色选项的代码（与原代码相同）
+        // 辅助函数：创建颜色条目 DOM
+        function createColorItem(color) {
             const item = document.createElement('div');
             item.className = 'cursor-color-item';
             item.innerHTML = `<div class="cursor-color-swatch" style="background:${color.hex}"></div>
-          <div class="cursor-color-id">${color.id}</div>
-          <div style="font-size: 8px; color: #6b7280;">${color.category}</div>`;
-            // 可以增加一个小的色系标签显示（可选）
-            // 例如：item.innerHTML += `<div style="font-size:8px; color:#888;">${color.category}</div>`;
+                              <div class="cursor-color-id">${color.id}</div>
+                              <div style="font-size: 8px; color: #6b7280;">${color.category}</div>`;
             item.onmouseenter = () => previewColorOnSelected(color.id);
             item.onmouseleave = () => clearPreview();
             item.onclick = (e) => {
@@ -698,7 +689,52 @@ function showColorPickerAtCursor(event) {
                 applyReplaceSelectedWithColor(color.id);
                 closeColorPickerPanel();
             };
-            colorContainer.appendChild(item);
+            return item;
+        }
+
+        // 过滤函数（匹配色号、色系类别、英文映射）
+        function matchesFilter(color) {
+            const idMatch = color.id.toLowerCase().includes(lowerFilter);
+            const categoryMatch = color.category.toLowerCase().includes(lowerFilter);
+            let mappedZh = null;
+            if (enToZhColorMap[lowerFilter]) mappedZh = enToZhColorMap[lowerFilter];
+            const mappedMatch = mappedZh ? color.category === mappedZh : false;
+            return idMatch || categoryMatch || mappedMatch;
+        }
+
+        // 情况1：有搜索词 -> 只显示过滤后的全部颜色（不分组）
+        if (lowerFilter !== '') {
+            const filtered = colorPaletteWithRgb
+                .filter(matchesFilter)
+                .sort((a, b) => a.id.localeCompare(b.id));
+            for (let color of filtered) {
+                colorContainer.appendChild(createColorItem(color));
+            }
+            return;
+        }
+
+        // 情况2：无搜索词 -> 显示“最近使用”（如有）和“全部颜色”
+        // 2.1 最近使用分组
+        if (recentColors.length > 0) {
+            const recentHeader = document.createElement('div');
+            recentHeader.textContent = '⭐ 最近使用';
+            recentHeader.style.cssText = 'width:100%; font-size:12px; font-weight:bold; color:#f97316; margin:8px 0 4px 4px; border-left:3px solid #f97316; padding-left:8px;';
+            colorContainer.appendChild(recentHeader);
+
+            for (let color of recentColors) {
+                colorContainer.appendChild(createColorItem(color));
+            }
+        }
+
+        // 2.2 全部颜色分组
+        const allHeader = document.createElement('div');
+        allHeader.textContent = '🎨 全部色号';
+        allHeader.style.cssText = 'width:100%; font-size:12px; font-weight:bold; color:#3b82f6; margin:12px 0 4px 4px; border-left:3px solid #3b82f6; padding-left:8px;';
+        colorContainer.appendChild(allHeader);
+
+        const allColors = [...colorPaletteWithRgb].sort((a, b) => a.id.localeCompare(b.id));
+        for (let color of allColors) {
+            colorContainer.appendChild(createColorItem(color));
         }
     }
     searchInput.oninput = (e) => renderColors(e.target.value);
@@ -839,6 +875,15 @@ function resetAll() {
     ctx.fillText("📸 上传图片后自动预览", 300, 200);
     setInfo("已重置", false);
     colorStatsArea.style.display = "none";
+    if (aspectRatioLocked) {
+        aspectRatioLocked = false;
+        lockedAspectRatio = 1;
+        const lockBtn = document.getElementById('lockAspectBtn');
+        if (lockBtn) {
+            lockBtn.innerHTML = '🔓 未锁定比例';
+            lockBtn.style.background = '#475569';
+        }
+    }
 }
 
 /**
@@ -1003,7 +1048,11 @@ function updateColsRows() {
  */
 function bindEvents() {
     triggerUploadBtn.onclick = () => fileInput.click();
-    uploadArea.onclick = () => fileInput.click();
+    uploadArea.onclick = (e) => {
+        // 如果点击的是按钮本身或者按钮内部的元素，则不再重复触发
+        if (e.target === triggerUploadBtn || triggerUploadBtn.contains(e.target)) return;
+        fileInput.click();
+    };
     fileInput.onchange = (e) => { if (e.target.files[0]) loadImageFromFile(e.target.files[0]); };
     resetBtn.onclick = resetAll;
     downloadBtn.onclick = downloadCanvas;
@@ -1013,12 +1062,56 @@ function bindEvents() {
         zoomValue.innerText = displayZoom.toFixed(2);
         if (originalImage) drawPixelArt(outputCanvas, selectedCells, displayZoom);
     };
-    function setCols(v) { let val = Math.min(100, Math.max(10, parseInt(v) || 10)); currentCols = val; updateGridUI(); updateColsRows(); }
-    function setRows(v) { let val = Math.min(100, Math.max(10, parseInt(v) || 10)); currentRows = val; updateGridUI(); updateColsRows(); }
+    function setCols(v) {
+        let val = Math.min(100, Math.max(10, parseInt(v) || 10));
+        currentCols = val;
+        updateGridUI();
+        updateColsRows();
+    }
+
+    function setRows(v) {
+        let val = Math.min(100, Math.max(10, parseInt(v) || 10));
+        currentRows = val;
+        if (aspectRatioLocked) {
+            let newCols = Math.round(currentRows * lockedAspectRatio);
+            newCols = Math.min(100, Math.max(10, newCols));
+            currentCols = newCols;
+            colNumber.value = currentCols;
+            gridColsSlider.value = currentCols;
+            colBadge.innerText = currentCols;
+        }
+        updateGridUI();
+        updateColsRows();
+    }
     colNumber.onchange = (e) => setCols(e.target.value);
     rowNumber.onchange = (e) => setRows(e.target.value);
-    gridColsSlider.oninput = (e) => { currentCols = parseInt(e.target.value); updateGridUI(); updateColsRows(); };
-    gridRowsSlider.oninput = (e) => { currentRows = parseInt(e.target.value); updateGridUI(); updateColsRows(); };
+    gridColsSlider.oninput = (e) => {
+        currentCols = parseInt(e.target.value);
+        if (aspectRatioLocked) {
+            let newRows = Math.round(currentCols / lockedAspectRatio);
+            newRows = Math.min(100, Math.max(10, newRows));
+            currentRows = newRows;
+            gridRowsSlider.value = currentRows;
+            rowNumber.value = currentRows;
+            rowBadge.innerText = currentRows;
+        }
+        updateGridUI();
+        updateColsRows();
+    };
+
+    gridRowsSlider.oninput = (e) => {
+        currentRows = parseInt(e.target.value);
+        if (aspectRatioLocked) {
+            let newCols = Math.round(currentRows * lockedAspectRatio);
+            newCols = Math.min(100, Math.max(10, newCols));
+            currentCols = newCols;
+            gridColsSlider.value = currentCols;
+            colNumber.value = currentCols;
+            colBadge.innerText = currentCols;
+        }
+        updateGridUI();
+        updateColsRows();
+    };
     outputCanvas.addEventListener('click', handleCanvasClick);
     uploadArea.addEventListener('dragover', e => e.preventDefault());
     uploadArea.addEventListener('drop', e => {
@@ -1027,7 +1120,11 @@ function bindEvents() {
         if (file && file.type.match('image.*')) loadImageFromFile(file);
         else setInfo("拖入图片文件", true);
     });
+
     const applyBtn = document.getElementById('applySuggestBtn');
+    const lockBtn = document.getElementById('lockAspectBtn');
+    const presetBtns = document.querySelectorAll('.preset-size-btn');
+
     if (applyBtn) {
         applyBtn.onclick = () => {
             if (!originalImage) {
@@ -1043,6 +1140,36 @@ function bindEvents() {
             setInfo(`已应用建议网格：${cols} x ${rows}`);
         };
     }
+    if (lockBtn) {
+        lockBtn.onclick = () => {
+            if (!aspectRatioLocked) {
+                // 即将锁定：记录当前行列比例
+                lockedAspectRatio = currentCols / currentRows;
+                aspectRatioLocked = true;
+                lockBtn.innerHTML = '🔒 已锁定比例';
+                lockBtn.style.background = '#3b82f6';
+                setInfo(`已锁定当前行列比例 ${currentCols}:${currentRows}`, false);
+            } else {
+                aspectRatioLocked = false;
+                lockBtn.innerHTML = '🔓 未锁定比例';
+                lockBtn.style.background = '#475569';
+                setInfo('已解锁宽高比，可自由调整行列', false);
+            }
+        };
+    }
+
+    presetBtns.forEach(btn => {
+        btn.onclick = () => {
+            const cols = parseInt(btn.getAttribute('data-cols'));
+            const rows = parseInt(btn.getAttribute('data-rows'));
+            if (isNaN(cols) || isNaN(rows)) return;
+            currentCols = cols;
+            currentRows = rows;
+            updateGridUI();
+            updateColsRows();
+            setInfo(`已切换至 ${cols} × ${rows} 网格`, false);
+        };
+    });
 }
 
 /**

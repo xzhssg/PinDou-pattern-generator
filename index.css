@@ -133,9 +133,10 @@ input[type="range"] {
     background: #eef2ff;
     border-radius: 40px;
     padding: 5px 16px;
-    font-weight: 600;
+    font-weight: 900;
     font-family: monospace;
     white-space: nowrap;
+    font-size: 1rem;
 }
 
 .zoom-control {
@@ -194,7 +195,7 @@ canvas {
 }
 
 .info-text {
-    font-size: 0.8rem;
+    font-size: 1.44rem;
     color: #2d3a4b;
     text-align: center;
     margin-top: 20px;
@@ -271,9 +272,9 @@ canvas {
     border-radius: 28px;
     box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.3);
     border: 1px solid #e2e8f0;
-    width: 560px;
-    max-width: 90vw;
-    max-height: 500px;
+    width: 720px;
+    max-width: 95vw;
+    max-height: 600px;
     backdrop-filter: blur(2px);
     display: flex;
     flex-direction: column;
@@ -283,7 +284,7 @@ canvas {
 .picker-drag-bar {
     background: #fef7e0;
     border-radius: 28px 28px 0 0;
-    padding: 10px 16px;
+    padding: 12px 20px;
     cursor: move;
     display: flex;
     justify-content: space-between;
@@ -291,7 +292,7 @@ canvas {
     border-bottom: 1px solid #f0e6c5;
     font-weight: 600;
     color: #b45309;
-    font-size: 0.85rem;
+    font-size: 1rem;
 }
 
 .drag-icon {
@@ -324,10 +325,10 @@ canvas {
 .color-search-box {
     width: calc(100% - 24px);
     margin: 12px 12px 8px 12px;
-    padding: 8px 12px;
+    padding: 10px 16px;
     border: 1px solid #cbd5e1;
     border-radius: 40px;
-    font-size: 0.85rem;
+    font-size: 1rem;
     outline: none;
     background: white;
 }
@@ -349,10 +350,10 @@ canvas {
 
 .cursor-color-item {
     width: calc(20% - 8px);
-    min-width: 90px;
+    min-width: 110px;
     background: white;
     border-radius: 20px;
-    padding: 6px 4px;
+    padding: 8px 4px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -370,15 +371,15 @@ canvas {
 }
 
 .cursor-color-swatch {
-    width: 42px;
-    height: 42px;
-    border-radius: 16px;
+    width: 52px;
+    height: 52px;
+    border-radius: 20px;
     border: 1px solid #cbd5e1;
     margin-bottom: 4px;
 }
 
 .cursor-color-id {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: bold;
     font-family: monospace;
     background: #f1f5f9;
@@ -413,7 +414,12 @@ canvas {
     transform: scale(0.98);
 }
 
-@media (max-width: 700px) {
+.preset-sizes button {
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+@media (max-width: 800px) {
     .card {
         padding: 18px;
     }
@@ -428,7 +434,16 @@ canvas {
     }
 
     .cursor-color-item {
-        min-width: 70px;
+        min-width: 80px;
+    }
+
+    .cursor-color-swatch{
+        width: 40px;
+        height: 40px;
+    }
+    .preset-sizes {
+        flex-wrap: wrap;
+        justify-content: center;
     }
 }
 
@@ -442,7 +457,7 @@ canvas {
     white-space: nowrap;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 800px) {
     .suggest-area {
         white-space: normal;
         flex-wrap: wrap;

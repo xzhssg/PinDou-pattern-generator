@@ -10,7 +10,9 @@
 
 <body>
     <div class="card">
+
         <h1>🧩 拼豆像素画 · 光标弹窗选色增强版</h1>
+
         <div class="sub">
             上传图片 → 调整行列/缩放 → 点击「自定义编辑」→ 单击/Shift多选像素块 →
             光标下方弹窗（可拖动/搜索/悬浮预览/撤销）| 每5格黑色辅助线
@@ -23,7 +25,13 @@
             <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/bmp" style="display: none;">
             <button class="upload-btn" id="triggerUpload">📁 选择图片</button>
         </div>
-
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="info-text" id="infoMsg">
+                💡 编辑模式：单击/Shift多选 → 弹窗选色（可拖动/搜索/悬浮预览/撤销）
+            </div>
+            <div class="pixel-total" id="totalPixelBadge">🧊 总块数: 576</div>
+        </div>
+    
         <!-- 控制栏（移除了放大编辑按钮） -->
         <div class="control-bar">
             <div class="slider-group">
@@ -38,26 +46,39 @@
                 <div class="number-input"><input type="number" id="rowNumber" min="10" max="100" step="1" value="24">
                 </div>
             </div>
-            <div class="pixel-total" id="totalPixelBadge">🧊 总块数: 576</div>
+           
             <div class="zoom-control">
                 <span>🔍 显示缩放</span>
                 <input type="range" id="zoomSlider" min="1.0" max="3.0" step="0.05" value="1.0">
                 <span id="zoomValue">1.0</span>
             </div>
+            <!-- 比例锁定按钮 -->
+            <button id="lockAspectBtn" style="background:#475569; gap:4px;">🔓 未锁定比例</button>
 
-            <div class="info-text" id="infoMsg">
-                💡 编辑模式：单击/Shift多选 → 弹窗选色（可拖动/搜索/悬浮预览/撤销）
+            <!-- 常用尺寸快捷按钮组 -->
+            <div class="preset-sizes"
+                style="display: inline-flex; gap: 8px; background: #eef2ff; border-radius: 40px; padding: 4px 12px;">
+                <span style="font-size:0.8rem;">📌 常用：</span>
+                <button class="preset-size-btn" data-cols="16" data-rows="16"
+                    style="background:#334155; padding:4px 12px;">16*16</button>
+                <button class="preset-size-btn" data-cols="32" data-rows="32"
+                    style="background:#334155; padding:4px 12px;">32*32</button>
+                <button class="preset-size-btn" data-cols="48" data-rows="48"
+                    style="background:#334155; padding:4px 12px;">48*48</button>
             </div>
+           
             <button id="resetBtn" style="background:#334155;">🔄 清空重置</button>
             <button id="editModeBtn" class="edit-mode">✏️ 自定义编辑</button>
             <button id="downloadBtn">⬇️ 下载PNG</button>
         </div>
+
         <div class="suggest-area"
             style="background:#eef2ff; border-radius:40px; padding:5px 16px; display: flex; align-items: center; gap: 12px;">
             <span>💡 建议网格：</span>
             <span id="suggestCols">-</span> 列 × <span id="suggestRows">-</span> 行
             <button id="applySuggestBtn" style="background:#3b82f6; padding:4px 12px; font-size:0.8rem;">应用建议</button>
         </div>
+
         <!-- 画布区域 -->
         <div class="canvas-wrapper">
             <canvas id="outputCanvas" width="600" height="400"></canvas>
@@ -68,8 +89,9 @@
                 <div id="statsGrid" class="stats-grid"></div>
             </div>
         </div>
+
     </div>
-    <script src="index.js"></script> 
+    <script src="index.js"></script>
 </body>
 
 </html>
